@@ -2,7 +2,7 @@
 FROM docker.io/eclipse-temurin:23-jdk-noble
 
 LABEL name="WebGoat: A deliberately insecure Web Application"
-LABEL maintainer="WebGoat team"
+LABEL maintainer="diegob"
 
 RUN \
   useradd -ms /bin/bash webgoat && \
