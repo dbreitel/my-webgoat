@@ -1,0 +1,56 @@
+name: Build WebGoat
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          repository: WebGoat/WebGoat
+          ref: v8.1.0
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean package -B -DskipTests
+
+      - name: Install Trivy
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.59.1/trivy_0.59.1_Linux-64bit.tar.gz
+          tar zxvf trivy_0.59.1_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+      - name: prepare vuln db
+        run: trivy image --download-db-only
+        
+      - name: Run Trivy FS Scan and Generate Report
+        run: trivy fs --exit-code 0 --severity HIGH,CRITICAL --ignore-unfixed --format json -o trivy-report.json .
+      - name: copy results to table too 
+        run: trivy convert --format table trivy-report.json > trivy-report.txt
+
+      - name: Upload Trivy Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report.zip
+          path: trivy-report.*
+
+      
+
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgoat-jar
+          path: webgoat-server/target/webgoat-server-v8.1.0.jar  # This assumes the JAR is in the 'target' directory
